@@ -1,0 +1,387 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  creates multiple policies which will be used to create User groups
+  Last Modified: 10 September.2021
+  Author: Exec <aerioeus@gmail.com>
+
+Metadata: {}
+Mappings: {}
+Conditions: {}
+Parameters:
+
+Parameters:
+  Owner:
+    Description: Enter Team or Individual Name Responsible for the Stack.
+    Type: String
+    Default: Andreas Rose
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+  TableNameDynamoDB:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+Resources:
+  # Root Policy
+  RootPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'This policy grants Root permissions'
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+           - Resource: "*"
+             Effect: "Allow"
+             Condition: {}
+             Action: "*"
+
+  # Codebuild Policies
+  CodeBuildServiceRolePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: This policy grants permissions to a service role to enable AWS Codebuild
+        to use multiple AWS Resources to run the build process on the users behalf
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "autoscaling:*"
+              - "cloudwatch:*"
+              - "cloudtrail:*"
+              - "cloudformation:*"
+              - "codebuild:*"
+              - "codepipeline:*"
+              - "ec2:*"
+              - "ecs:*"
+              - "ecr:*"
+              - "elasticloadbalancing:*"
+              - "iam:*"
+              - "logs:*"
+              - "s3:*"
+              - "sns:*"
+              - "ssm:*"
+              - "sqs:*"
+              - "kms:*"
+
+  # cloudformation policies
+  # cloudformation service role policy
+  CloudFormationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: This policy grants permissions to a service role to enable
+         AWS Cloudformation to use multiple AWS Resources on the users behalf
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "autoscaling:*"
+              - "ec2:*"
+              - "ecs:*"
+              - "ecr:*"
+              - "elasticloadbalancing:*"
+              - "iam:*"
+              - "rds:*"
+              - "ssm:*"
+              - "s3:*"
+
+  # cloudformation StacksetAdministrationRole Policy
+  CloudFormationStacksetAdministrationRolePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'AssumeRole-AWSCloudFormationStackSetExecutionRole'
+      Path: "/"
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Resource:
+              - "arn:aws:iam::*:role/AWSCloudFormationStackSetExecutionRole"
+
+  # Codepipeline policies
+  # Codepipeline Service Role Policy
+  CodePipelinePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'This policy grants permissions to a service role to enable Codepipeline to use multiple AWS Resources on the users behalf'
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action: "*"
+
+  # S3 Policies
+  # Codepipeline S3 Bucket Policy
+  CodepipelineS3Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: This policy allows Codepipeline to access the Artifact Bucket
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSCodepipelineReadWrite
+            Resource:
+              - !Sub "arn:aws:s3:::${AWS::AccountId}*/*/*/*"
+            Effect: Allow
+            Action:
+              - s3:*
+
+
+  # Limits Managing to a Specific S3 Bucket
+  LimitedManagingS3Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy allows Access to s3 buckets Within Specific Dates"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Resource:
+          - arn:aws:s3:::<BUCKET-NAME>
+          - arn:aws:s3:::<BUCKET-NAME>/*
+          Effect: Allow
+          Condition: {}
+          Action: s3:*
+        - NotResource:
+          - arn:aws:s3:::<BUCKET-NAME>
+          - arn:aws:s3:::<BUCKET-NAME>/*
+          Effect: Deny
+          Condition: {}
+          NotAction: s3:*
+
+  # Allows Access Within Specific Dates
+  s3DateaccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy allows Access to s3 buckets Within Specific Dates"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition:
+              DateGreaterThan:
+                aws:CurrentTime: '2017-07-01T00:00:00Z'
+              DateLessThan:
+                aws:CurrentTime: '2017-12-31T23:59:59Z'
+            Action:
+              - s3:PutBucketPolicy
+              - s3:PutBucketAcl
+
+  # Allows Read and Write Access to a Specific S3 Bucket, Programmatically and in the Console
+  SpecificS3Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy allows Access to s3 buckets Within Specific Dates"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Resource: "*"
+          Effect: Allow
+          Action:
+          - s3:GetBucketLocation
+          - s3:ListAllMyBuckets
+
+        - Resource:
+          - arn:aws:s3:::<BUCKET-NAME>
+          Effect: Allow
+          Condition: {}
+          Action:
+          - s3:ListBucket
+
+        - Resource:
+          - arn:aws:s3:::<BUCKET-NAME>/*
+          Effect: Allow
+          Condition: {}
+          Action:
+          - s3:PutObject
+          - s3:GetObject
+
+  # Allows Read and Write Access to  S3 Buckets, Programmatically and in the Console
+  ReadwriteS3Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy allows Access to all s3 buckets"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Resource: "*"
+          Effect: Allow
+          Condition: {}
+          Action:
+          - s3:GetBucketLocation
+          - s3:ListAllMyBuckets
+          - s3:ListBucket
+          - s3:PutObject
+          - s3:GetObject
+
+  # Allows to replicate s3 buckets
+  S3ReplicaPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Action:
+          - s3:Get*
+          - s3:ListBucket
+          Resource: '*'
+          Effect: 'Allow'
+        - Action:
+          - s3:ReplicateObject
+          - s3:ReplicateDelete
+          - s3:ReplicateTags
+          - s3:GetObjectVersionTagging
+          Resource: '*'
+          Effect: 'Allow'
+
+  # Cloudwatch Policies
+  # Cloudwatch Put Metrics
+  CloudWatchPutMetricsRolePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "CloudWatch_PutMetricData"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: CloudWatchPutMetricData
+          Effect: Allow
+          Resource: "*"
+          Action:
+           - cloudwatch:*
+
+  # Lambda Execution Policy
+  LambdaExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "Lambda Policies"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: ReadWriteTable
+          Effect: Allow
+          Action:
+          - dynamodb:BatchGetItem
+          - dynamodb:GetItem
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:BatchWriteItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          Resource: arn:aws:dynamodb:*:*:table/*
+        - Sid: GetStreamRecords
+          Effect: Allow
+          Action: dynamodb:GetRecords
+          Resource: arn:aws:dynamodb:*:*:table/*/stream/*
+        - Sid: WriteLogStreamsAndGroups
+          Effect: Allow
+          Action:
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Resource: "*"
+        - Sid: CreateLogGroup
+          Effect: Allow
+          Action: logs:CreateLogGroup
+          Resource: "*"
+        - Sid: ReadSSMValue
+          Effect: Allow
+          Action: # allows lambda to read from a SSM resource
+          - ssm:GetParameters
+          - ssm:GetParameter
+          Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+        - Sid: Keyhandling
+          Effect: Allow
+          Action: kms:Decrypt
+          Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:secret:*
+
+Outputs:
+  StackName:
+   Description: Name of the Stack
+   Value: !Ref AWS::StackName
+
+  # Root Policy
+  RootPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref RootPolicy
+
+  # Codebuild Policies
+  CodeBuildServiceRolePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CodeBuildServiceRolePolicy
+
+  # Cloudformation policies
+  CloudFormationPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CloudFormationPolicy
+
+  CloudFormationStacksetAdministrationRolePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CloudFormationStacksetAdministrationRolePolicy
+
+  # Codepipeline policies
+  CodePipelinePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CodePipelinePolicy
+
+  # S3 Policies
+  s3DateaccessPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref s3DateaccessPolicy
+
+  CodepipelineS3Policy:
+    Description: ARN of the managed policy
+    Value: !Ref CodepipelineS3Policy
+
+  LimitedManagingS3Policy:
+    Description: ARN of the managed policy
+    Value: !Ref LimitedManagingS3Policy
+
+  SpecificS3Policy:
+    Description: ARN of the managed policy
+    Value: !Ref SpecificS3Policy
+
+  ReadwriteS3Policy:
+    Description: ARN of the managed policy
+    Value: !Ref ReadwriteS3Policy
+
+  S3ReplicaPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref S3ReplicaPolicy
+
+  # Cloudwatch Policies
+  CloudWatchPutMetricsRolePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CloudWatchPutMetricsRolePolicy
+
+  # Lambda Policies
+  LambdaExecutionPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref LambdaExecutionPolicy

@@ -1,0 +1,347 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+ This template creates service roles for AWS resources
+  Last Modified: 10.September 2021
+  Author: Exec <aerioeus@gmail.com>
+
+Metadata: {}
+Mappings: {}
+Conditions: {}
+
+Parameters:
+  Owner:
+    Description: Enter Team or Individual Name Responsible for the Stack
+    Type: String
+    Default: Andreas Rose
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  Subproject:
+    Description: Enter Project Name.
+    Type: String
+    Default: none
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+  ManagedPolicy1:
+    Description: CodeBuildServiceRolePolicy
+    Type: String
+
+  ManagedPolicy2:
+    Description: PolCloudFormationNestedCFNAccessPolicy
+    Type: String
+
+  ManagedPolicy3:
+    Description: CodePipelineNestedCFNAccessPolicy
+    Type: String
+
+  ManagedPolicy5:
+    Description: ReadwriteS3Policy
+    Type: String
+
+  ManagedPolicy6:
+    Description: CloudWatchPutMetricsRolePolicy
+    Type: String
+
+  ManagedPolicy7:
+    Description: CloudFormationStacksetAdministrationRolePolicy
+    Type: String
+
+  ManagedPolicy8:
+    Description: RootPolicy
+    Type: String
+
+  ManagedPolicy9:
+    Description: LambdaExecutionPolicy
+    Type: String
+
+  ManagedPolicy15:
+    Description: CodepipelineS3Policy
+    Type: String
+
+Resources:
+  # Root Role
+  RootRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-RootRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - !Ref ManagedPolicy8
+
+  # Service Roles
+  # Codebuilding service role
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-CodeBuildRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - !Ref ManagedPolicy1
+
+  # Cloudformation Roles
+  # Cloudformation service role
+  CloudFormationRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-CloudFormation-Service-Role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - !Ref ManagedPolicy2
+
+  # Cloudformation Stackset Admin account role
+  AdministrationRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - !Ref ManagedPolicy7
+
+  # Cloudformation Stackset Target account Role
+  ExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  # Codepipeline (Full access) service role
+  CodePipelineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-CodePipelineRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+              - codepipeline.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - !Ref ManagedPolicy3
+
+  # S3 Roles
+  # S3 Service Role for Codepipeline to allow access to the Artifact Bucket
+  CodepipelineS3Role:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+              - codepipeline.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - !Ref ManagedPolicy15
+
+  # Cloudwatch Roles
+  CloudWatchPutMetricsRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: !Sub ${EnvironmentName}-CloudWatchPutMetricsRole
+        AssumeRolePolicyDocument:
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+            - sts:AssumeRole
+        Path: "/"
+        ManagedPolicyArns:
+          - !Ref ManagedPolicy6
+
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: ApiGatewayLogsPolicy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            - logs:PutLogEvents
+            - logs:GetLogEvents
+            - logs:FilterLogEvents
+            Resource: "*"
+      - PolicyName: InvokeLambda
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:*
+              Resource: "*"
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+          - !Ref ManagedPolicy9
+          - arn:aws:iam::aws:policy/AWSIoTConfigReadOnlyAccess
+          - arn:aws:iam::aws:policy/AWSIoTFullAccess
+
+  BackupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - backup.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores
+
+Outputs:
+  StackNameRoles:
+     Description: The Name of the Stack
+     Value: !Ref AWS::StackName
+
+  RootRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt RootRole.Arn
+
+  CodeBuildRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt CodeBuildRole.Arn
+
+  CloudFormationRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt CloudFormationRole.Arn
+
+  CodePipelineRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt CodePipelineRole.Arn
+
+  AdministrationRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt AdministrationRole.Arn
+
+  ExecutionRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt ExecutionRole.Arn
+
+  CloudWatchPutMetricsRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt CloudWatchPutMetricsRole.Arn
+
+  CodepipelineS3RoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt CodepipelineS3Role.Arn
+
+  ApiGatewayRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt ApiGatewayRole.Arn
+
+  LambdaExecutionRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt LambdaExecutionRole.Arn
+
+  BackupRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt BackupRole.Arn
+
+  # here we use Ref instead of GetAtt since its for instance profiles which expect a name
+  CloudWatchPutMetricsRoleName:
+    Description: The Name of the Role
+    Value: !Ref CloudWatchPutMetricsRole
+
+  RootRoleName:
+    Description: The Name of the Role
+    Value: !Ref RootRole
+
+  ApiGatewayRoleName:
+    Description: The Name of the Role
+    Value: !Ref ApiGatewayRole
+
+  LambdaExecutionRoleName:
+    Description: The Name of the Role
+    Value: !Ref LambdaExecutionRole
+
+  BackupRoleName:
+    Description: The Name of the Role
+    Value: !Ref BackupRole

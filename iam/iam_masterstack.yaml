@@ -1,0 +1,218 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This masterstack-template deploys IAM user, groups, roles and policies
+  Note that you will need to specify the CAPABILITY_IAM flag
+  when you create the stack to allow this template to execute. You can do this through
+  the AWS management console by clicking on the check box acknowledging that you understand
+  this template creates IAM resources or by specifying the CAPABILITY_IAM flag to
+  the cfn-create-stack command line tool
+  Last Modified: 19 September 2021
+  Author: Exec <aerioeus@gmail.com>
+
+Parameters:
+  Owner:
+    Description: Individual Name Responsible for the Stack
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/LEAD-DEVELOPER_NAME
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/GLOBAL
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+Resources:
+  Policies:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://s3.amazonaws.com/${AWS::AccountId}-${Project}-templatescfn/iam/iam_policies.yaml
+      TimeoutInMinutes: '5'
+
+  Roles:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://s3.amazonaws.com/${AWS::AccountId}-${Project}-templatescfn/iam/iam_roles.yaml
+      TimeoutInMinutes: '5'
+      Parameters:
+        ManagedPolicy1:
+          Fn::GetAtt:
+          - Policies
+          - Outputs.CodeBuildServiceRolePolicy
+        ManagedPolicy2:
+          Fn::GetAtt:
+          - Policies
+          - Outputs.CloudFormationPolicy
+        ManagedPolicy3:
+          Fn::GetAtt:
+          - Policies
+          - Outputs.CodePipelinePolicy
+        ManagedPolicy5:
+          Fn::GetAtt:
+          - Policies
+          - Outputs.ReadwriteS3Policy
+        ManagedPolicy6:
+          Fn::GetAtt:
+          - Policies
+          - Outputs.CloudWatchPutMetricsRolePolicy
+        ManagedPolicy7:
+          Fn::GetAtt:
+          - Policies
+          - Outputs.CloudFormationStacksetAdministrationRolePolicy
+        ManagedPolicy8:
+          Fn::GetAtt:
+          - Policies
+          - Outputs.RootPolicy
+        ManagedPolicy9:
+          Fn::GetAtt:
+            - Policies
+            - Outputs.LambdaExecutionPolicy
+        ManagedPolicy15:
+          Fn::GetAtt:
+          - Policies
+          - Outputs.CodepipelineS3Policy
+
+Outputs:
+  StackName:
+    Description: The Name of the Stack
+    Value: !Ref AWS::StackName
+
+  # output from nested Roles stack
+  StackNameRoles:
+    Description: The Name of the Stack Roles
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.StackNameRoles
+    Export:
+      Name: !Sub ${EnvironmentName}-StackNameRoles
+
+  RootRoleARN:
+    Description: The ARN of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.RootRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-RootRoleARN
+
+  RootRoleName:
+    Description: The Name of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.RootRoleName
+    Export:
+      Name: !Sub ${EnvironmentName}-RootRoleName
+
+  CodeBuildRoleARN:
+    Description: The ARN of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.CodeBuildRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-CodeBuildRoleARN
+
+  CloudFormationRoleARN:
+    Description: The ARN of the Role
+    Value: !
+      Fn::GetAtt:
+      - Roles
+      - Outputs.CloudFormationRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-CloudFormationRoleARN
+
+  CodePipelineRoleARN:
+    Description: The ARN of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.CodePipelineRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-CodePipelineRoleARN
+
+  AdministrationRoleARN:
+    Description: The ARN of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.AdministrationRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-AdministrationRoleARN
+
+  ExecutionRoleARN:
+    Description: The ARN of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.ExecutionRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-ExecutionRoleARN
+
+  CloudWatchPutMetricsRoleARN:
+    Description: The ARN of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.CloudWatchPutMetricsRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-CloudWatchPutMetricsRoleARN
+
+  ApiGatewayRoleARN:
+    Description: The ARN of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.ApiGatewayRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-ApiGatewayRoleARN
+
+  LambdaExecutionRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt Roles.Outputs.LambdaExecutionRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-LambdaExecutionRoleARN
+
+  BackupRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt Roles.Outputs.BackupRoleARN
+    Export:
+      Name: !Sub ${EnvironmentName}-BackupRoleARN
+
+  # RoleNames
+  CloudWatchPutMetricsRoleName:
+    Description: The Name of the Role
+    Value:
+      Fn::GetAtt:
+      - Roles
+      - Outputs.CloudWatchPutMetricsRoleName
+    Export:
+      Name: !Sub ${EnvironmentName}-CloudWatchPutMetricsRoleName
+
+  ApiGatewayRoleName:
+    Description: The Name of the Role
+    Value: !GetAtt Roles.Outputs.ApiGatewayRoleName
+    Export:
+      Name: !Sub ${EnvironmentName}-ApiGatewayRoleName
+
+  LambdaExecutionRoleName:
+    Description: The Name of the Role
+    Value: !GetAtt Roles.Outputs.LambdaExecutionRoleName
+    Export:
+      Name: !Sub ${EnvironmentName}-LambdaExecutionRoleName
+
+  BackupRoleName:
+    Description: The Name of the Role
+    Value: !GetAtt Roles.Outputs.BackupRoleName
+    Export:
+      Name: !Sub ${EnvironmentName}-BackupRoleName
