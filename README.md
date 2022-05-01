@@ -38,7 +38,7 @@ aws cloudformation update-stack \
 
 
 
-## 3. S3 Stack 
+## 3. S3 Stack
 
 ```shell
 aws cloudformation create-stack \
@@ -62,7 +62,7 @@ aws cloudformation update-stack \
 
 ```shell
 $ aws s3 rm s3://bucket-name --recursive
-# like 
+# like
 $ aws s3 rm s3://300746241447-asa-templatescfn --recursive
 ```
 
@@ -85,7 +85,7 @@ aws cloudformation create-stack \
 aws cloudformation update-stack \
 --profile default \
 --stack-name sns-stack \
---template-body file://global_sn.yaml
+--template-body file://global_sns.yaml
 ```
 
 
@@ -112,7 +112,7 @@ aws s3 cp \
 --recursive iam s3://300746241447-asa-templatescfn
 ```
 
-- then 
+- then
 
 ```shell
 $ cd iam (directory which holds the masterstack and the nested stacks)

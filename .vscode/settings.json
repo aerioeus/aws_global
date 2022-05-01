@@ -3,9 +3,9 @@
     "window.newWindowDimensions": "inherit",
     "workbench.colorTheme": "Visual Studio Dark",
     "workbench.colorCustomizations": {
-        "activityBar.background": "#de9904",
+        "activityBar.background": "#8e067a",
         "activityBarBadge.background": "#18ad5b",
-        "activityBar.foreground":"#0c0215",
+        "activityBar.foreground":"#f3d705",
         "activityBar.inactiveForeground": "#f1f1f1",
         "activityBarBadge.foreground":"#fdfbfb",
         "tab.activeBackground":"#4e524ee1",
