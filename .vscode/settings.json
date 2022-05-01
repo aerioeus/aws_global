@@ -1,0 +1,149 @@
+{
+    "workbench.iconTheme": "vscode-great-icons",
+    "window.newWindowDimensions": "inherit",
+    "workbench.colorTheme": "Visual Studio Dark",
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#de9904",
+        "activityBarBadge.background": "#18ad5b",
+        "activityBar.foreground":"#0c0215",
+        "activityBar.inactiveForeground": "#f1f1f1",
+        "activityBarBadge.foreground":"#fdfbfb",
+        "tab.activeBackground":"#4e524ee1",
+        "statusBar.foreground":"#fdfbfb",
+        "statusBar.noFolderBackground" : "#212121",
+        "statusBar.debuggingBackground": "#263238",
+        "statusBarItem.prominentForeground": "#263238",
+        "statusBar.background" : "#0a32e6"
+    },
+    "editor.tokenColorCustomizations": {
+        "[Monokai Classic]": {
+            "comments": "#60d01a",
+            "strings": "#ece233"
+            },
+        "textMateRules": [
+
+            {
+                "scope": "punctuation.definition.comment.yaml",
+                "settings": {
+                "foreground": "#60d01a",
+                }
+            },
+            {
+                "scope": "punctuation.definition.comment.js",
+                "settings": {
+                "foreground": "#60d01a",
+                }
+            },
+            {
+                "scope": "punctuation.definition.comment.html",
+                "settings": {
+                "foreground": "#60d01a",
+                }
+            },
+            {
+                "scope": "punctuation.definition.comment.begin.css",
+                "settings": {
+                "foreground": "#60d01a",
+                }
+            },
+            {
+                "scope": "punctuation.definition.comment.end.css",
+                "settings": {
+                "foreground": "#60d01a",
+                }
+            }
+            ]
+},
+"codestream.email": "arose@energicos.com",
+"redhat.telemetry.enabled": false,
+"notebook.cellToolbarLocation": {
+    "default": "right",
+    "jupyter-notebook": "left"
+},
+"editor.fontSize": 15,
+"notebook.lineNumbers": "on",
+"terminal.integrated.fontFamily": "MesloLGS NF",
+"terminal.integrated.defaultProfile.windows": "C:\\WINDOWS\\System32\\wsl.exe (migrated)",
+"terminal.integrated.profiles.windows": {
+    "C:\\WINDOWS\\System32\\wsl.exe (migrated)": {
+        "path": "C:\\WINDOWS\\System32\\wsl.exe",
+        "args": []
+    }
+},
+"git.autofetch": true,
+"git.enableSmartCommit": true,
+"remote.SSH.enableAzureIntegration": true,
+"remote.SSH.remoteServerListenOnSocket": true,
+"sync.autoDownload": true,
+"sync.autoUpload": true,
+"remote.SSH.remotePlatform": {
+    "192.168.72.71": "linux",
+    "192.168.1.90": "linux",
+    "192.168.1.120": "linux",
+    "192.168.1.215": "linux",
+    "192.168.1.88": "linux"
+},
+"files.autoSave": "onFocusChange",
+"remote.SSH.configFile": "C:\\Users\\aerioeus\\.ssh\\config",
+"editor.bracketPairColorization.enabled": true,
+"editor.guides.bracketPairs":"active",
+"workbench.startupEditor": "none",
+"json.schemas": [],
+"yaml.customTags": [
+    "!And",
+    "!And sequence",
+    "!If",
+    "!If sequence",
+    "!Not",
+    "!Not sequence",
+    "!Equals",
+    "!Equals sequence",
+    "!Or",
+    "!Or sequence",
+    "!FindInMap",
+    "!FindInMap sequence",
+    "!Base64",
+    "!Join",
+    "!Join sequence",
+    "!Cidr",
+    "!Ref",
+    "!Sub",
+    "!Sub sequence",
+    "!GetAtt",
+    "!GetAZs",
+    "!ImportValue",
+    "!ImportValue sequence",
+    "!Select",
+    "!Select sequence",
+    "!Split",
+    "!Split sequence"
+],
+"aws.telemetry": false,
+"editor.largeFileOptimizations": false,
+"tabnine.experimentalAutoImports": true,
+"editor.suggestSelection": "first",
+"vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
+"html-css-class-completion.enableEmmetSupport": true,
+"emmet.showSuggestionsAsSnippets": true,
+"emmet.triggerExpansionOnTab": true,
+"settingsSync.ignoredSettings": [
+    "-python.venvFolders"
+],
+"telemetry.telemetryLevel": "off",
+"diffEditor.codeLens": true,
+"aws.resources.enabledResources": [
+    "AWS::DynamoDB::GlobalTable",
+    "AWS::GreengrassV2::ComponentVersion",
+    "AWS::IAM::Role",
+    "AWS::IoT::Certificate",
+    "AWS::IoT::FleetMetric",
+    "AWS::IoT::TopicRule",
+    "AWS::Lambda::CodeSigningConfig",
+    "AWS::Lambda::EventSourceMapping",
+    "AWS::Lambda::Function",
+    "AWS::DynamoDB"
+],
+"notebook.output.textLineLimit": 100,
+"security.workspace.trust.untrustedFiles": "open",
+"aws.profile": "profile:default"
+}

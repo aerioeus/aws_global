@@ -65,12 +65,16 @@ Parameters:
     Description: CodepipelineS3Policy
     Type: String
 
+  ManagedPolicy16:
+    Description: CloudTrailDeliverLogsRolePolicy
+    Type: String
+
 Resources:
   # Root Role
   RootRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${EnvironmentName}-RootRole
+      RoleName: !Sub ${Project}-RootRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -89,7 +93,7 @@ Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${EnvironmentName}-CodeBuildRole
+      RoleName: !Sub ${Project}-CodeBuildRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -107,7 +111,7 @@ Resources:
   CloudFormationRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Sub ${EnvironmentName}-CloudFormation-Service-Role
+      RoleName: !Sub ${Project}-CloudFormation-Service-Role
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -157,7 +161,7 @@ Resources:
   CodePipelineRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Sub ${EnvironmentName}-CodePipelineRole
+      RoleName: !Sub ${Project}-CodePipelineRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -193,7 +197,7 @@ Resources:
   CloudWatchPutMetricsRole:
       Type: AWS::IAM::Role
       Properties:
-        RoleName: !Sub ${EnvironmentName}-CloudWatchPutMetricsRole
+        RoleName: !Sub ${Project}-CloudWatchPutMetricsRole
         AssumeRolePolicyDocument:
           Statement:
           - Effect: Allow
@@ -242,6 +246,22 @@ Resources:
                 - lambda:*
               Resource: "*"
 
+  CloudTrailLogsRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: !Sub ${Project}-CloudTrailLogsRole
+        AssumeRolePolicyDocument:
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - cloudtrail.amazonaws.com
+            Action:
+            - sts:AssumeRole
+        Path: "/"
+        ManagedPolicyArns:
+          - !Ref ManagedPolicy16
+
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -259,6 +279,13 @@ Resources:
           - !Ref ManagedPolicy9
           - arn:aws:iam::aws:policy/AWSIoTConfigReadOnlyAccess
           - arn:aws:iam::aws:policy/AWSIoTFullAccess
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+          - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+          - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+          - arn:aws:iam::aws:policy/service-role/AmazonS3ObjectLambdaExecutionRolePolicy
 
   BackupRole:
     Type: AWS::IAM::Role
@@ -317,6 +344,10 @@ Outputs:
     Description: The ARN of the Role
     Value: !GetAtt ApiGatewayRole.Arn
 
+  CloudTrailLogsRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt CloudTrailLogsRole.Arn
+
   LambdaExecutionRoleARN:
     Description: The ARN of the Role
     Value: !GetAtt LambdaExecutionRole.Arn
@@ -337,6 +368,10 @@ Outputs:
   ApiGatewayRoleName:
     Description: The Name of the Role
     Value: !Ref ApiGatewayRole
+
+  CloudTrailLogsRoleName:
+    Description: The Name of the Role
+    Value: !Ref CloudTrailLogsRole
 
   LambdaExecutionRoleName:
     Description: The Name of the Role

@@ -1,0 +1,180 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  template will create IAM users, groups and policies
+  The groups each have different IAM policies associated with them
+  This example also creates an AWSAccessKeyId/AWSSecretKey pair associated with the user
+  Note that you will need to specify the CAPABILITY_IAM flag
+  when you create the stack to allow this template to execute. You can do this through
+  the AWS management console by clicking on the check box acknowledging that you understand
+  this template creates IAM resources or by specifying the CAPABILITY_IAM flag to
+  the cfn-create-stack command line tool
+   Last Modified: 10.12.2018
+   Author: Exec <aerioeus@gmail.com>
+Mappings: {}
+Conditions: {}
+
+Metadata:
+  ParameterLabels:
+    EnvironmentName:
+      default: Global parameter that indicates the deployment environment that the stack will deploy
+    Owner:
+      default: Team or Individual Owner
+    Project:
+      default: Name of the current project
+    ReleaseManagerPolicy:
+      default: Policy for the release manager
+    DeveloperPolicy:
+      default: Policy for the developer
+    TesterPolicy:
+      default: Policy for the tester
+
+Parameters:
+  Owner:
+    Description: Enter Team or Individual Name Responsible for the Stack
+    Type: String
+    Default: Andreas Rose
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  Subproject:
+    Description: Enter Project Name.
+    Type: String
+    Default: none
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+  ReleaseManagerPolicy:
+    Description: ReleaseManagerPolicy
+    Type: String
+
+  DeveloperPolicy:
+    Description: DeveloperPolicy
+    Type: String
+
+  TesterPolicy:
+    Description: TesterPolicy
+    Type: String
+
+Resources:
+  # declaring IAM User Resources
+  ReleaseManager:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: ReleaseManager
+      Path: "/"
+      LoginProfile:
+        Password: Release123!&
+
+  Developer:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Developer
+      Path: "/"
+      LoginProfile:
+        Password: Dev123!Dev123%
+
+  Tester:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Tester
+      Path: "/"
+      LoginProfile:
+        Password: Test123!Test123!%
+
+  # declaring IAM Access Key Resources
+  ReleaseMngrAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref "ReleaseManager"
+
+  DeveloperAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref "Developer"
+
+  TesterAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref "Tester"
+
+  # create IAM groups
+  ReleasemanagerGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      Path: "/"
+      GroupName: !Sub ${Project}-ReleasemanagerGroup
+      ManagedPolicyArns:
+        - !Ref ReleaseManagerPolicy
+
+  DeveloperGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      Path: "/"
+      GroupName: !Sub ${Project}-DeveloperGroup
+      ManagedPolicyArns:
+        - !Ref DeveloperPolicy
+
+  TesterGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      Path: "/"
+      GroupName: !Sub ${Project}-TesterGroup
+      ManagedPolicyArns:
+        - !Ref TesterPolicy
+
+  # adds users to a group
+  DeveloperAddToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName: !Ref ReleasemanagerGroup
+      Users:
+        - !Ref ReleaseManager
+
+  DevAddToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName: !Ref DeveloperGroup
+      Users:
+        - !Ref Developer
+
+  TesterAddToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName: !Ref TesterGroup
+      Users:
+        - !Ref Tester
+
+Outputs:
+  StackNameUserGroups:
+    Description: The Name of the Stack
+    Value: !Ref AWS::StackName
+
+  ReleaseMngrAccessKey:
+    Value: !Ref ReleaseMngrAccessKey
+    Description: AWSAccessKeyId of new user Release Manager
+
+  ReleaseMngrSecretKey:
+    Value: Fn::GetAtt [ReleaseMngrAccessKey, SecretAccessKey]
+    Description: AWSSecretKey of new user Release Manager
+
+  DevAccessKey:
+    Value: !Ref DeveloperAccessKey
+    Description: AWSAccessKeyId of new user Developer
+
+  DevSecretKey:
+    Value: Fn::GetAtt [DeveloperAccessKey, SecretAccessKey]
+    Description: AWSSecretKey of new user Developer
+
+  TesterAccessKey:
+    Value: !Ref TesterAccessKey
+    Description: AWSAccessKeyId of new user Tester
+
+  TesterSecretKey:
+    Value: Fn::GetAtt [TesterAccessKey.SecretAccessKey]
+    Description: AWSSecretKey of new user Tester

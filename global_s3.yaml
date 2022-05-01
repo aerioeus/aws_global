@@ -1,0 +1,192 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  creates  s3 instances for the ASA project
+  Last Modified: 16 October 2018
+  Author: Exec <aerioeus@gmail.com>
+
+Metadata: {}
+Mappings: {}
+Conditions: {}
+
+Parameters:
+  Owner:
+    Description: Individual Name Responsible for the Stack
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/LEAD-DEVELOPER_NAME
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_WEATHER
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+  CFTemplatesBucketName:
+    Description: Name for a bucket to be used in the ressource
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/weather/CFTemplatesBucket
+
+  LambdaCodeBucketName:
+    Description: Name for a bucket to be used in the ressource
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/weather/LambdaCodeBucket
+
+  LayerCodeBucketName:
+    Description: Name for a bucket to be used in the ressource
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/weather/LayerCodeBucket
+
+  StepFunctionStatesBucketName:
+    Description: Name for a bucket to be used in the ressource
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/weather/StepFunctionStatesBucket
+
+Resources:
+  CFTemplates:
+    DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref CFTemplatesBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: false
+        BlockPublicPolicy: true
+      AccessControl: BucketOwnerFullControl
+      Tags:
+        - Key: Name
+          Value: !Sub ${Project}-${Subproject}-TemplateBucket
+
+  LambdaCode:
+    DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref LambdaCodeBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: false
+        BlockPublicPolicy: true
+      AccessControl: BucketOwnerFullControl
+      Tags:
+        - Key: Name
+          Value: !Sub ${Project}-${Subproject}-LambdaCodeBucket
+
+  LayerCode:
+    DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref LayerCodeBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: false
+        BlockPublicPolicy: true
+      AccessControl: BucketOwnerFullControl
+      Tags:
+        - Key: Name
+          Value: !Sub ${Project}-${Subproject}-LambdaLayerBucket
+
+  StepFunctionStates:
+    DeletionPolicy: Delete # change to retain later
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref StepFunctionStatesBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: false
+        BlockPublicPolicy: true
+      AccessControl: BucketOwnerFullControl
+      Tags:
+        - Key: Name
+          Value: !Sub ${Project}-${Subproject}-stepfunctionsBucket
+
+Outputs:
+  StackName:
+    Description: Stackname
+    Value: !Ref AWS::StackName
+    Export:
+      Name: Dev-Stackname-webserver
+
+  # s3 WebsiteURL
+  CFTemplatesURL:
+    Description: The Amazon S3 website endpoint for the Templat bucket
+    Value: !GetAtt CFTemplates.WebsiteURL
+    Export:
+      Name: !Sub ${Project}-CFTemplates-WebsiteURL
+
+  # s3 DomainName
+  CFTemplatesDNS:
+    Description: The DNS name of the specified bucket
+    Value: !GetAtt CFTemplates.DomainName
+    Export:
+      Name: !Sub ${Project}-CFTemplates-DomainName
+
+  LambdaCodeDNS:
+    Description: The ARN of the s3 Bucket
+    Value: !GetAtt LambdaCode.Arn
+    Export:
+      Name: !Sub ${Project}-LambdaCode-DomainName
+
+  # s3 Names
+  CFTemplatesName:
+    Description: The Name of the s3 Bucket
+    Value: !Ref CFTemplates
+    Export:
+      Name: !Sub ${Project}-CFTemplates-Name
+
+  LambdaCodeName:
+    Description: The Name of the s3 Bucket
+    Value: !Ref LambdaCode
+    Export:
+      Name: !Sub ${Project}-LambdaCode-Name
+
+  LayerName:
+    Description: The Name of the s3 Bucket
+    Value: !Ref LayerCode
+    Export:
+      Name: !Sub ${Project}-LayerCode-Name
+
+  StepFunctionStatesName:
+    Description: The Name of the s3 Bucket
+    Value: !Ref StepFunctionStates
+    Export:
+      Name: !Sub ${Project}-StepFunctionStates-Name
+
+  # s3 ARNs
+  CFTemplatesARN:
+    Description: The ARN of the s3 Bucket
+    Value: !GetAtt CFTemplates.Arn
+    Export:
+      Name: !Sub ${Project}-CFTemplates-Arn
+
+  LambdaCodeARN:
+    Description: The ARN of the s3 Bucket
+    Value: !GetAtt LambdaCode.Arn
+    Export:
+      Name: !Sub ${Project}-LambdaCode-Arn
+
+  LayerARN:
+    Description: The ARN of the s3 Bucket
+    Value: !GetAtt LayerCode.Arn
+    Export:
+      Name: !Sub ${Project}-LayerCode-Arn
+
+  StepFunctionStatesARN:
+    Description: The ARN of the s3 Bucket
+    Value: !GetAtt StepFunctionStates.Arn
+    Export:
+      Name: !Sub ${Project}-StepFunctionStates-Arn

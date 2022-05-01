@@ -1,13 +1,12 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >
   creates multiple policies which will be used to create User groups
-  Last Modified: 10 September.2021
+  Last Modified: 10 January 2022
   Author: Exec <aerioeus@gmail.com>
 
 Metadata: {}
 Mappings: {}
 Conditions: {}
-Parameters:
 
 Parameters:
   Owner:
@@ -92,15 +91,16 @@ Resources:
             Effect: "Allow"
             Condition: {}
             Action:
-              - "autoscaling:*"
-              - "ec2:*"
-              - "ecs:*"
-              - "ecr:*"
-              - "elasticloadbalancing:*"
-              - "iam:*"
-              - "rds:*"
-              - "ssm:*"
-              - "s3:*"
+              - autoscaling:*
+              - ec2:*
+              - ecs:*
+              - ecr:*
+              - elasticloadbalancing:*
+              - iam:*
+              - rds:*
+              - ssm:*
+              - s3:*
+              - lambda:*
 
   # cloudformation StacksetAdministrationRole Policy
   CloudFormationStacksetAdministrationRolePolicy:
@@ -131,6 +131,126 @@ Resources:
             Effect: "Allow"
             Condition: {}
             Action: "*"
+
+  # admin policies
+  # Allows Full EC2 Access Within a Specific Region, Programmatically and in the Console
+  FullRegionAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'This policy grants admin permissions to a User Group for a region'
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Resource: "*"
+            Effect: Allow
+            Condition:
+              StringEquals:
+                ec2:Region: "eu-west-1"
+            Action:
+              - ec2:*
+
+  # Policy for the Releasemanager
+  ReleaseManagerPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy grants permissions to a User Group 'Releasemanager'"
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "acm:*"
+              - "autoscaling:*"
+              - "cloudwatch:*"
+              - "cloudtrail:*"
+              - "cloudformation:*"
+              - "cloudfront:*"
+              - "codebuild:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "cognito-identity:*"
+              - "cognito-idp:*"
+              - "cognito-sync:*"
+              - "cloud9:*"
+              - "ec2:*"
+              - "ecs:*"
+              - "ecr:*"
+              - "elasticbeanstalk:*"
+              - "elasticloadbalancing:*"
+              - "lambda:*"
+              - "logs:*"
+              - "rds:*"
+              - "route53:*"
+              - "s3:*"
+              - "sns:*"
+              - "ssm:*"
+              - "sqs:*"
+
+  # Policy for the Developer
+  DeveloperPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy grants permissions to a User Group 'Developer'"
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "autoscaling:*"
+              - "cloudwatch:*"
+              - "cloudtrail:*"
+              - "cloudformation:*"
+              - "codebuild:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "ec2:*"
+              - "ecs:*"
+              - "ecr:*"
+              - "elasticbeanstalk:*"
+              - "elasticloadbalancing:*"
+              - "lambda:*"
+              - "logs:*"
+              - "rds:*"
+              - "s3:*"
+              - "sns:*"
+              - "ssm:*"
+              - "sqs:*"
+
+  # Policy for Tester
+  TesterPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy grants permissions to a User Group 'Tester'"
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "cloudwatch:*"
+              - "cloudtrail:*"
+              - "cloudformation:*"
+              - "codebuild:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "ec2:*"
+              - "ecs:*"
+              - "logs:*"
+              - "rds:*"
+              - "s3:*"
+              - "sns:*"
+              - "ssm:*"
+              - "sqs:*"
+
 
   # S3 Policies
   # Codepipeline S3 Bucket Policy
@@ -277,6 +397,26 @@ Resources:
           Action:
            - cloudwatch:*
 
+  # Cloudtrail
+  CloudTrailDeliverLogsRolePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy Document for CloudTrail to Use CloudWatch Logs for Monitoring
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AWSCloudTrailCreateLogStream20181024
+          Effect: Allow
+          Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - sns:*
+            - sqs:*
+          Resource:
+            - Fn::ImportValue:
+                !Sub ${Project}-TrailTopicARN
+
   # Lambda Execution Policy
   LambdaExecutionPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -289,27 +429,21 @@ Resources:
         - Sid: ReadWriteTable
           Effect: Allow
           Action:
-          - dynamodb:BatchGetItem
-          - dynamodb:GetItem
-          - dynamodb:Query
-          - dynamodb:Scan
-          - dynamodb:BatchWriteItem
-          - dynamodb:PutItem
-          - dynamodb:UpdateItem
+          - dynamodb:*
           Resource: arn:aws:dynamodb:*:*:table/*
         - Sid: GetStreamRecords
           Effect: Allow
           Action: dynamodb:GetRecords
           Resource: arn:aws:dynamodb:*:*:table/*/stream/*
-        - Sid: WriteLogStreamsAndGroups
+        - Sid: s3Full
           Effect: Allow
           Action:
-          - logs:CreateLogStream
-          - logs:PutLogEvents
+          - s3:*
           Resource: "*"
-        - Sid: CreateLogGroup
+        - Sid: LogStreamsFull
           Effect: Allow
-          Action: logs:CreateLogGroup
+          Action:
+          - logs:*
           Resource: "*"
         - Sid: ReadSSMValue
           Effect: Allow
@@ -321,6 +455,10 @@ Resources:
           Effect: Allow
           Action: kms:Decrypt
           Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:secret:*
+        - Sid: Stepfunctions
+          Effect: Allow
+          Action: states:*
+          Resource: "*"
 
 Outputs:
   StackName:
@@ -350,6 +488,23 @@ Outputs:
   CodePipelinePolicy:
     Description: ARN of the managed policy
     Value: !Ref CodePipelinePolicy
+
+  # admin policies
+  FullRegionAccessPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref FullRegionAccessPolicy
+
+  ReleaseManagerPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref ReleaseManagerPolicy
+
+  DeveloperPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref DeveloperPolicy
+
+  TesterPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref TesterPolicy
 
   # S3 Policies
   s3DateaccessPolicy:
@@ -385,3 +540,8 @@ Outputs:
   LambdaExecutionPolicy:
     Description: ARN of the managed policy
     Value: !Ref LambdaExecutionPolicy
+
+  # CloudTrail Policies
+  CloudTrailDeliverLogsRolePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CloudTrailDeliverLogsRolePolicy

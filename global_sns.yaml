@@ -1,0 +1,609 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+ create sns topics for the project invoicegenerator
+ Last Modified: 10 September 2018
+ Author: Exec <aerioeus@gmail.com>
+
+Metadata: {}
+Mappings: {}
+Conditions: {}
+
+
+Parameters:
+  Owner:
+    Description: Enter Team or Individual Name Responsible for the Stack.
+    Type: String
+    Default: Andreas Rose
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_WEATHER
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+  EmailEndPoint1:
+    Type: String
+    Description: The endpoint that receives notifications from the Amazon SNS topic.
+      The endpoint value depends on the protocol that you specify. This could be a
+      URL or ARN
+    Default: awssns@energicos.com
+
+  EmailEndPoint2:
+    Type: String
+    Description: The endpoint that receives notifications from the Amazon SNS topic.
+      The endpoint value depends on the protocol that you specify. This could be a
+      URL or ARN
+    Default: cloudtrailmetrics@energicos.com
+
+  SubscriptionProtocol1:
+    Type: String
+    Description: The subscription's protocol
+    AllowedValues:
+    - http
+    - https
+    - email
+    - email-json
+    - sms
+    - sqs
+    - application
+    - lambda
+    Default: email
+
+  SubscriptionProtocol2:
+    Type: String
+    Description: The subscription's protocol
+    AllowedValues:
+    - http
+    - https
+    - email
+    - email-json
+    - sms
+    - sqs
+    - application
+    - lambda
+    Default: email
+
+  # Alarmparameter
+  AlarmthresholdSNS1:
+    Description: Treshold for number of messages that Amazon SNS failed to deliver
+    Type: String
+    Default: '1'
+
+Resources:
+  # RDS Notifications
+  RDSTopic:
+    Type: AWS::SNS::Topic
+    Properties: {}
+
+  RDSTopicSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref EmailEndPoint1
+      Protocol: !Ref SubscriptionProtocol1
+      TopicArn: !Ref RDSTopic
+
+  # NAT Notifications
+  NATTopic:
+    Type: AWS::SNS::Topic
+    Properties: {}
+
+  NATTopicSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref EmailEndPoint1
+      Protocol: !Ref SubscriptionProtocol1
+      TopicArn: !Ref NATTopic
+
+  # ASG Notifications
+  ASGTopic:
+    Type: AWS::SNS::Topic
+    Properties: {}
+
+  ASGTopicSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref EmailEndPoint1
+      Protocol: !Ref SubscriptionProtocol1
+      TopicArn: !Ref ASGTopic
+
+  # Billing Notifications
+  BillingTopic:
+    Type: AWS::SNS::Topic
+    Properties: {}
+
+  BillingTopicSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref EmailEndPoint1
+      Protocol: !Ref SubscriptionProtocol1
+      TopicArn: !Ref BillingTopic
+
+  # ECSCluster Notifications
+  ECSClusterTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint: !Ref EmailEndPoint1
+          Protocol: !Ref SubscriptionProtocol1
+
+  # Cloudtrail Notifications
+  TrailTopic:
+    Type: AWS::SNS::Topic
+    Properties: {}
+
+  TrailTopicSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref EmailEndPoint1
+      Protocol: !Ref SubscriptionProtocol1
+      TopicArn: !Ref TrailTopic
+
+  TrailTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AWSCloudTrailSNSPolicy
+          Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Resource: !Ref TrailTopic
+          Action: 'sns:Publish'
+      Topics:
+      - !Ref TrailTopic
+
+  # Alarmtopic
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        -
+          Endpoint: !Ref EmailEndPoint1
+          Protocol: !Ref SubscriptionProtocol1
+
+  # ALB Notifications
+  ALBexternTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        -
+          Endpoint: !Ref EmailEndPoint1
+          Protocol: !Ref SubscriptionProtocol1
+
+  # Trail Custom Metrics Notifications
+  TrailMetricsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        -
+          Endpoint: !Ref EmailEndPoint2
+          Protocol: !Ref SubscriptionProtocol1
+
+  # EC2 Notifications
+  EC2Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        -
+          Endpoint: !Ref EmailEndPoint1
+          Protocol: !Ref SubscriptionProtocol1
+
+  # Codebuild Notifications
+  CodebuildTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        -
+          Endpoint: !Ref EmailEndPoint1
+          Protocol: !Ref SubscriptionProtocol1
+
+  # Codepipeline Notifications
+  CodepipelineTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        -
+          Endpoint: !Ref EmailEndPoint1
+          Protocol: !Ref SubscriptionProtocol1
+
+  # ALARMS
+  # Alarm NumberOfNotificationsFailed
+  BillingNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt BillingTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref BillingTopic
+      InsufficientDataActions:
+      - !Ref BillingTopic
+      OKActions:
+      - !Ref BillingTopic
+      TreatMissingData:  notBreaching
+
+  RDSNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt RDSTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref RDSTopic
+      InsufficientDataActions:
+      - !Ref RDSTopic
+      OKActions:
+      - !Ref RDSTopic
+      TreatMissingData:  notBreaching
+
+  NATNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt NATTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref NATTopic
+      InsufficientDataActions:
+      - !Ref NATTopic
+      OKActions:
+      - !Ref NATTopic
+      TreatMissingData:  notBreaching
+
+  ASGNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt ASGTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref ASGTopic
+      InsufficientDataActions:
+      - !Ref ASGTopic
+      OKActions:
+      - !Ref ASGTopic
+      TreatMissingData:  notBreaching
+
+  ECSNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt ECSClusterTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref ECSClusterTopic
+      InsufficientDataActions:
+      - !Ref ECSClusterTopic
+      OKActions:
+      - !Ref ECSClusterTopic
+      TreatMissingData:  notBreaching
+
+  TrailNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt TrailTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref TrailTopic
+      InsufficientDataActions:
+      - !Ref TrailTopic
+      OKActions:
+      - !Ref TrailTopic
+      TreatMissingData:  notBreaching
+
+  AlarmNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt AlarmTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref AlarmTopic
+      InsufficientDataActions:
+      - !Ref AlarmTopic
+      OKActions:
+      - !Ref AlarmTopic
+      TreatMissingData:  notBreaching
+
+  ALBexternNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt ALBexternTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref ALBexternTopic
+      InsufficientDataActions:
+      - !Ref ALBexternTopic
+      OKActions:
+      - !Ref ALBexternTopic
+      TreatMissingData:  notBreaching
+
+  CloudTrailMetricsNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt TrailMetricsTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref TrailMetricsTopic
+      InsufficientDataActions:
+      - !Ref TrailMetricsTopic
+      OKActions:
+      - !Ref TrailMetricsTopic
+      TreatMissingData:  notBreaching
+
+  EC2NumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt EC2Topic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref EC2Topic
+      InsufficientDataActions:
+      - !Ref EC2Topic
+      OKActions:
+      - !Ref EC2Topic
+      TreatMissingData:  notBreaching
+
+  CodebuildNumberOfNotificationsFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: monitors number of messages that Amazon SNS failed to deliver
+      Namespace: AWS/SNS
+      MetricName: NumberOfNotificationsFailed
+      Dimensions:
+      - Name: TopicName
+        Value: !GetAtt CodebuildTopic.TopicName
+      Statistic: Sum
+      Period: 360
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmthresholdSNS1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+      - !Ref CodebuildTopic
+      InsufficientDataActions:
+      - !Ref CodebuildTopic
+      OKActions:
+      - !Ref CodebuildTopic
+      TreatMissingData:  notBreaching
+
+Outputs:
+  # TopicARNs
+  RDSTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref RDSTopic
+    Export:
+      Name: !Sub ${Project}-RDSTopicARN
+
+  NATTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref NATTopic
+    Export:
+      Name: !Sub ${  Project}-NATTopicARN
+
+  ASGTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref ASGTopic
+    Export:
+      Name: !Sub ${Project}-ASGTopicARN
+
+  BillingTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref BillingTopic
+    Export:
+      Name: !Sub ${Project}-BillingTopicARN
+
+  ECSClusterTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref ECSClusterTopic
+    Export:
+      Name: !Sub ${Project}-ECSClusterTopicARN
+
+  TrailTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref TrailTopic
+    Export:
+      Name: !Sub ${Project}-TrailTopicARN
+
+  TrailMetricsTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref TrailMetricsTopic
+    Export:
+      Name: !Sub ${Project}-TrailMetricsTopicARN
+
+  AlarmTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref AlarmTopic
+    Export:
+      Name: !Sub ${Project}-AlarmTopicARN
+
+  ALBexternTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref ALBexternTopic
+    Export:
+      Name: !Sub ${Project}-ALBexternTopicARN
+
+  EC2TopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref EC2Topic
+    Export:
+      Name: !Sub ${Project}-EC2TopicARN
+
+  CodebuildTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref CodebuildTopic
+    Export:
+      Name: !Sub ${Project}-CodebuildTopicARN
+
+  CodepipelineTopicARN:
+    Description: ARN of newly created SNS Topic
+    Value: !Ref CodepipelineTopic
+    Export:
+      Name: !Sub ${Project}-CodepipelineTopicARN
+
+  # TopicName
+  RDSTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt RDSTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-RDSTopicName
+
+  NATTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt NATTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-NATTopicName
+
+  ASGTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt ASGTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-ASGTopicName
+
+  BillingTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt BillingTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-BillingTopicName
+
+  ECSClusterTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt ECSClusterTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-ECSClusterTopicName
+
+  TrailTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt TrailTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-TrailTopicName
+
+  TrailMetricsTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt TrailMetricsTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-TrailMetricsTopicName
+
+  AlarmTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt AlarmTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-AlarmTopicName
+
+  ALBexternTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt ALBexternTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-ALBexternTopicName
+
+  EC2TopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt EC2Topic.TopicName
+    Export:
+      Name: !Sub ${Project}-EC2TopicName
+
+  CodebuildTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt CodebuildTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-CodebuildTopicName
+
+  CodepipelineTopicName:
+    Description: Name of newly created SNS Topic
+    Value: !GetAtt CodepipelineTopic.TopicName
+    Export:
+      Name: !Sub ${Project}-CodepipelineTopicName
