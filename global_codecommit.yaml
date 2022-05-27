@@ -1,0 +1,183 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  Template to Create CodeCommit Repo with Initial Commit
+  Last Modified: 25.04.2022
+  Author: Exec <aerioeus@gmail.com>
+
+Conditions:
+  LogRetentionInDaysSet: !Not [!Equals [!Ref LogRetentionInDays, '']]
+
+Parameters:
+  Owner:
+    Description: Individual Name Responsible for the Stack
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/LEAD-DEVELOPER_NAME
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/GLOBAL
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+  RepositoryName:
+    Description: Name of the Repository
+    Type: String
+    Default: weatherdata
+
+  CodeBucket:
+    Description: Bucket in which you have code
+    Type: String
+    Default: code-bucket
+
+  CodeKey:
+    Description: key of zipped code
+    Type: String
+    Default: test.zip
+
+  BranchName:
+    Description: key of zipped code
+    Type: String
+    Default: init.zip
+
+  Author:
+    Description: name of the author who created the commit
+    Type: String
+    Default: aerioeus
+
+  Email:
+    Description: email address of the person who created the commit
+    Type: String
+    Default: aerioeus@gmail.com
+
+  MainRepo:
+    Description: master repository
+    Type: String
+    Default: Main
+
+  StagingRepo:
+    Description: master repository
+    Type: String
+    Default: Dev
+
+  CommitMessage:
+    Description: commit message you want to include in the commit
+    Type: String
+    Default: This is the initial commit
+
+  LogRetentionInDays:
+    Type: String
+    Default: ''
+    AllowedValues: ['', 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653]
+
+  Logstream:
+    Description: commit message you want to include in the commit
+    Type: String
+    Default: Branchcreation
+
+Resources:
+  RepositoryWeatherdata:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: !Ref RepositoryName
+      Triggers:
+      - Name: MyTrigger
+        CustomData: Project ID 12345
+        DestinationArn:
+          Fn::ImportValue: !Sub ${Project}-CodeCommitTopicARN
+        Branches:
+        - development
+        Events:
+        - all
+
+  CodeGuruAssociation:
+    Type: AWS::CodeGuruReviewer::RepositoryAssociation
+    Properties:
+      Name: !GetAtt RepositoryWeatherdata.Name
+      Tags:
+        - Key: Project
+          Value: asa
+      Type: CodeCommit
+
+  LambdaForBranchCreation:
+    Type: AWS::Lambda::Function
+    DependsOn:   RepositoryWeatherdata
+    Properties:
+      FunctionName: createdevbranchfunction
+      Runtime: python3.8
+      Environment:
+        Variables:
+          REPOSITORY: !Ref RepositoryName
+          AUTHOR: !Ref Author
+          EMAIL: !Ref Email
+          COMMITMESSAGE: !Ref CommitMessage
+          MAIN: !Ref MainRepo
+          STAGING: !Ref StagingRepo
+      Code:
+        S3Bucket:
+          Fn::ImportValue: !Sub '${Project}-LambdaCode-Name'
+        S3Key: lambda1/deployment-package.zip
+      # Handler name = name of python file + handler name
+      Handler: "lambda1.lambda_handler"
+      Layers:
+        - Fn::ImportValue:
+            !Sub ${Project}-${Subproject}-dataprocessingLayerARN
+      Role:
+        Fn::ImportValue: !Sub ${Project}-LambdaExecutionRoleARN
+      Timeout: 30
+      MemorySize: 128
+
+
+  # specify the CloudWatch log group that an AWS lambda logs to
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Join:
+        - ''
+        - - "/aws/lambda/"
+          - !Sub ${LambdaForBranchCreation}
+      RetentionInDays: !If [LogRetentionInDaysSet, !Ref LogRetentionInDays, !Ref AWS::NoValue]
+
+  LambdaLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref LambdaLogGroup
+      LogStreamName: !Ref Logstream
+
+Outputs:
+  RepositoryID:
+    Description: ID of the created CodeCommit repo
+    Value: !Ref RepositoryWeatherdata
+
+  RepositoryArn:
+    Description: Resource Name (ARN) of the repository
+    Value: !GetAtt RepositoryWeatherdata.Arn
+    Export:
+      Name: !Sub ${Project}-RepositoryWeatherdataARN
+
+  RepositoryHttp:
+    Description: URL to use for cloning the repository over HTTPS
+    Value: !GetAtt RepositoryWeatherdata.CloneUrlHttp
+    Export:
+      Name: !Sub ${Project}-RepositoryWeatherdataHttp
+
+  RepositorySSH:
+    Description: URL to use for cloning the repository over SSH
+    Value: !GetAtt RepositoryWeatherdata.CloneUrlSsh
+    Export:
+      Name: !Sub ${Project}-RepositoryWeatherdataSSH
+
+  RepositoryName:
+    Description: URL to use for cloning the repository over SSH
+    Value: !GetAtt RepositoryWeatherdata.Name
+    Export:
+      Name: !Sub ${Project}-RepositoryWeatherdataName
