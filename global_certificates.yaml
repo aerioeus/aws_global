@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  DNS Validated ACM Certificate Example
+  DNS Validated ACM Certificate
   Last Modified: 25.04.2022
   Author: Exec <aerioeus@gmail.com>
 
