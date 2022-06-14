@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This stack creates a chatbot to send slack notifications
+  Last Modified: 31.05.2022
+  Author: Exec <aerioeus@gmail.com>
+
+Parameters:
+  Owner:
+    Description: Individual Name Responsible for the Stack
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/LEAD_DEVELOPER_NAME
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/PROJECT_NAME
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/SUBPROJECT_LANDING
+
+  ConfigurationName:
+    Description: Enter Project Name
+    Type: String
+    Default: /homepage/PROJECT_NAME
+
+  LogLevel:
+    Description: Enter Project Name
+    Type: String
+    Default: /homepage/PROJECT_NAME
+
+  SlackChannelId:
+    Description: Enter Project Name
+    Type: String
+    Default: /homepage/PROJECT_NAME
+
+  slackWorkspaceId:
+    Description: Enter Project Name
+    Type: String
+    Default: /homepage/PROJECT_NAME
+
+  snsTopicArn:
+    Description: Enter Project Name
+    Type: CommaDelimitedList
+
+Resources:
+  FailedBuildSlackNotification:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties:
+      ConfigurationName: !Sub Codepipeline_${Project}_${Subproject}_SlackIntegration-FailedBuild
+      IamRoleArn:
+        Fn::ImportValue: !Sub ${Project}-${Subproject}-SlackIntegrationRoleARN
+      LoggingLevel: INFO
+      SlackChannelId: C03GJSPPUFK
+      SlackWorkspaceId: T5Q4731PX
+      SnsTopicArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-FailedHomepageDevPipelineSlackSNSTopicARN
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-FailedHomepagePrdPipelineSlackSNSTopicARN
+
+  CodeCommitSlackNotification:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties:
+      ConfigurationName: !Sub Codepipeline_${Project}_${Subproject}_SlackIntegration-CodeCommit
+      IamRoleArn:
+        Fn::ImportValue: !Sub ${Project}-${Subproject}-SlackIntegrationRoleARN
+      LoggingLevel: INFO
+      SlackChannelId: C03GTB8F7N2
+      SlackWorkspaceId: T5Q4731PX
+      SnsTopicArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-HomepageRepoSlackSNSTopicARN
+
+  CodeCommitNotificationRule:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    Properties:
+      DetailType: FULL
+      EventTypeIds:
+        - codecommit-repository-comments-on-commits
+        - codecommit-repository-pull-request-created
+        - codecommit-repository-pull-request-merged
+      Name: CodeCommitNotifications
+      Resource:
+        !Sub ${Project}-RepositoryWeatherdataARN
+      Status: ENABLED
+      Tags:
+        Project: Homepage
+        Env: Dev
+      Targets:
+        - TargetType: SNS
+          TargetAddress: 'Fn::ImportValue: !Sub ${Project}-CodeCommitTopicARN'
+
+
+
+
+Outputs:
+  FailedBuildSlackNotificationARN:
+    Description: Homepage Slack Notification ARN
+    Value: !Ref FailedBuildSlackNotification
+    Export:
+      Name: !Sub Codepipeline-${Project}-${Subproject}-FailedBuildSlackNotificationARN
+
+  CodeCommitSlackNotificationARN:
+    Description: Homepage Slack Notification ARN
+    Value: !Ref CodeCommitSlackNotification
+    Export:
+      Name: !Sub Codepipeline-${Project}-${Subproject}-CodeCommitSlackNotificationARN
