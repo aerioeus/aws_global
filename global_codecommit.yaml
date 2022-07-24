@@ -135,6 +135,18 @@ Resources:
       Timeout: 30
       MemorySize: 128
 
+  CustomResource:
+    Type: Custom::CreateBranchCodeCommit
+    Properties:
+        ServiceToken: !GetAtt LambdaForBranchCreation.Arn
+        repositoryName: !Ref RepositoryName
+        mainBranch: !Ref MainRepo
+        branchName: !Ref BranchName
+        authorName: !Ref Author
+        email: !Ref Email
+        commitMessage: !Ref CommitMessage
+        stagingRepo: !Ref StagingRepo
+        loglevel: !Ref info
 
   # specify the CloudWatch log group that an AWS lambda logs to
   LambdaLogGroup:
