@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+ template will create IAM user groups
+ The groups each have different IAM policies associated with them 
+ This stack that should be created by the root account user because it's created before the Administrator account is created
+ Note that you will need to specify the CAPABILITY_IAM flag when you create the stack 
+  Last Modified: 28.06.2022
+  Author: Exec <aerioeus@gmail.com>
+
+Metadata: {}
+Mappings: {}
+Conditions: {}
+
+Parameters:
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/PROJECT_NAME
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/SUBPROJECT_LANDING
+
+  AWSCodeCommitFullAccessPolicy:
+    Description: Policy
+    Type: String
+    Default: arn:aws:iam::aws:policy/AWSCodeCommitFullAccess
+
+  AWSCodeCommitPowerUserPolicy:
+    Description: Policy
+    Type: String
+    Default: arn:aws:iam::aws:policy/AWSCodeCommitPowerUser
+Resources:
+  # create IAM groups
+  AdminGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      Path: "/"
+      GroupName: AdminGroup
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-RegionAdministratorPolicyARN
+        - !Ref AWSCodeCommitFullAccessPolicy
+
+  DeveloperGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      Path: "/"
+      GroupName: DeveloperGroup
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-DeveloperPolicyARN
+        - !Ref AWSCodeCommitPowerUserPolicy
+
+  TesterGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      Path: "/"
+      GroupName: TesterGroup
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-TesterPolicyARN
+        - !Ref AWSCodeCommitPowerUserPolicy
+
+  ReleaseManagerGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      Path: "/"
+      GroupName: ReleaseManagerGroup
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-ReleaseManagerPolicyARN
+        - !Ref AWSCodeCommitPowerUserPolicy
+
+Outputs:
+  AdminGroupARN:
+    Description: The ARN of the Role
+    Value: !GetAtt AdminGroup.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-AdminGroupARN
+
+  DeveloperGroupARN:
+    Description: The ARN of the Role
+    Value: !GetAtt DeveloperGroup.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-DeveloperGroupARN
+
+  TesterGroupARN:
+    Description: The ARN of the Role
+    Value: !GetAtt TesterGroup.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-TesterGroupARN
+
+  ReleaseManagerGroupARN:
+    Description: The ARN of the Role
+    Value: !GetAtt ReleaseManagerGroup.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-ReleaseManagerGroupARN
+
+  AdminGroupName:
+    Description: The ARN of the Role
+    Value: !Ref AdminGroup
+    Export:
+      Name: !Sub ${Project}-${Subproject}-AdminGroupName
+
+  DeveloperGroupName:
+    Description: The ARN of the Role
+    Value: !Ref DeveloperGroup
+    Export:
+      Name: !Sub ${Project}-${Subproject}-DeveloperGroupName
+
+  TesterGroupName:
+    Description: The ARN of the Role
+    Value: !Ref TesterGroup
+    Export:
+      Name: !Sub ${Project}-${Subproject}-TesterGroupName
+
+  ReleaseManagerGroupName:
+    Description: The ARN of the Role
+    Value: !Ref ReleaseManagerGroup
+    Export:
+      Name: !Sub ${Project}-${Subproject}-ReleaseManagerGroupName

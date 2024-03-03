@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+ This template will create IAM admin user.
+ This stack that should be created by the root account user!
+ This stack also creates an AWSAccessKeyId/AWSSecretKey pair associated with the user
+ Note that you will need to specify the CAPABILITY_IAM flag
+   Last Modified: 28.06.2022
+   Author: Exec <aerioeus@gmail.com>
+
+Mappings: {}
+Conditions: {}
+
+Metadata:
+  ParameterLabels:
+    AdministratorAccountId:
+      default: Id of the account administrator
+    Owner:
+      default: Team or Individual Owner
+    Project:
+      default: Name of the current project
+
+Parameters:
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/PROJECT_NAME
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/SUBPROJECT_LANDING
+
+  TempPwd:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/TEMP_PWD_1
+    NoEcho: true
+
+Resources:
+  # declaring IAM User Resources
+  Administrator:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Admin1
+      Path: "/"
+      LoginProfile:
+        Password: !Ref TempPwd
+
+  # declaring IAM Access Key Resources
+  AdminAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref Administrator
+
+  # adds users to a group
+  AdminAddToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName:
+        Fn::ImportValue: !Sub ${Project}-${Subproject}-AdminGroupName
+      Users:
+        - !Ref Administrator
+
+Outputs:
+  AdminAccessKey:
+    Description: AWSAccessKeyId of new user Administrator
+    Value: !Ref AdminAccessKey
+    Export:
+      Name: !Sub ${Project}-${Subproject}-AdminAccessKey
+
+  AdminSecretKey:
+    Description: AWSSecretKey of new user Administrator
+    Value: !GetAtt AdminAccessKey.SecretAccessKey
+    Export:
+      Name: !Sub ${Project}-${Subproject}-AdminSecretKey

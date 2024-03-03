@@ -1,0 +1,658 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  creates multiple policies which will be used to create IAM Profiles
+  This stack that should be created by the root account user because it's created before the Administrator account is created
+  Note that you will need to specify the CAPABILITY_IAM flag when you create the stack 
+  Last Modified: 28.06.2022
+  Author: Exec <aerioeus@gmail.com>
+
+Metadata: {}
+Mappings: {}
+Conditions: {}
+
+Parameters:
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/PROJECT_NAME
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/SUBPROJECT_LANDING
+
+  StageDev:
+    Description: The 'Prd' environment name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME/DEV
+
+  StagePrd:
+    Description: The 'Dev' environment name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME/PRD
+
+Resources:
+  # Root Policy
+  RootPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'This policy grants Root permissions'
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+           - Resource: "*"
+             Effect: "Allow"
+             Condition: {}
+             Action: "*"
+
+  # Codebuild Policies
+  CodeBuildServiceRolePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: This policy grants permissions to a service role to enable AWS Codebuild
+        to use multiple AWS Resources to run the build process on the users behalf
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - apigateway:*
+              - autoscaling:*
+              - cloudwatch:*
+              - cloudtrail:*
+              - cloudformation:*
+              - codecommit:*
+              - codebuild:*
+              - codestar-connections:*
+              - codepipeline:*
+              - ec2:*
+              - ecs:*
+              - ecr:*
+              - elasticloadbalancing:*
+              - iam:*
+              - logs:*
+              - s3:*
+              - sns:*
+              - ssm:*
+              - sqs:*
+              - kms:*
+              - dynamodb:*
+              - lambda:*
+              - cloudfront:UpdateDistribution
+              - route53:GetHostedZone
+              - route53:ChangeResourceRecordSets
+              - route53:GetChange
+              - events:DescribeRule
+
+  # cloudformation policies
+  # cloudformation service role policy
+  CloudFormationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: This policy grants permissions to a service role to enable
+         AWS Cloudformation to use multiple AWS Resources on the users behalf
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - autoscaling:*
+              - ec2:*
+              - ecs:*
+              - ecr:*
+              - elasticloadbalancing:*
+              - iam:*
+              - rds:*
+              - ssm:*
+              - s3:*
+              - lambda:*
+
+  # Codepipeline policies
+  # Codepipeline Service Role Policy
+  CodePipelinePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'This policy grants permissions to a service role to enable Codepipeline to use multiple AWS Resources on the users behalf'
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - autoscaling:*
+              - cloudwatch:*
+              - cloudtrail:*
+              - cloudformation:*
+              - codebuild:*
+              - codecommit:*
+              - codedeploy:*
+              - codestar-connections:*
+              - ec2:*
+              - ecs:*
+              - ecr:*
+              - elasticbeanstalk:*
+              - elasticloadbalancing:*
+              - iam:*
+              - lambda:*
+              - logs:*
+              - rds:*
+              - s3:*
+              - sns:*
+              - ssm:*
+              - sqs:*
+              - kms:*
+              - opsworks:*
+              - dynamodb:*
+
+  # admin policies
+  RegionAdministratorPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'This policy grants admin permissions to a User Group for a region'
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Resource: "*"
+            Effect: Allow
+            Condition:
+              StringEquals:
+                ec2:Region: "eu-west-1"
+            Action: "*"
+
+  DeveloperPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy grants permissions to a User Group 'Developer'"
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "autoscaling:*"
+              - "acm:*"
+              - "apigateway:*"
+              - "cloudfront:CreateDistribution"
+              - "cloudfront:CreateInvalidation"
+              - "cloudfront:Get*"
+              - "cloudfront:List*"
+              - "cloudfront:TagResource"
+              - "cloudfront:UpdateDistribution"
+              - "cloudformation:*"
+              - "cloudtrail:*"
+              - "cloudwatch:*"
+              - "codebuild:*"
+              - "codedeploy:*"
+              - "codestar-connections:*"
+              - "codepipeline:*"
+              - "cognito-identity:*"
+              - "cognito-idp:*"
+              - "cognito-sync:*"
+              - "datapipeline:*"
+              - "dynamodb:*"
+              - "events:*"
+              - "ec2:*"
+              - "es:*"
+              - "ecr:*"
+              - "elasticbeanstalk:*"
+              - "elasticloadbalancing:*"
+              - "iam:AttachRolePolicy"
+              - "iam:ChangePassword"
+              - "iam:CreateRole"
+              - "iam:CreatePolicy"
+              - "iam:DeletePolicy"
+              - "iam:DeleteRole"
+              - "iam:DeleteRolePolicy"
+              - "iam:DetachRolePolicy"
+              - "iam:Get*"
+              - "iam:GetInstanceProfile"
+              - "iam:GetPolicy"
+              - "iam:GetRole"
+              - "iam:GetRolePolicy"
+              - "iam:List*"
+              - "iam:ListPolicyVersions"
+              - "iam:ListRoles"
+              - "iam:ListRolePolicies"
+              - "iam:PassRole"
+              - "iam:PutRolePolicy"
+              - "iam:UpdateAssumeRolePolicy"
+              - "kms:ListAliases"
+              - "lambda:*"
+              - "logs:*"
+              - "route53:*"
+              - "rds:*"
+              - "s3:*"
+              - "ses:sendRawEmail"
+              - "ses:SendEmail"
+              - "sns:*"
+              - "sqs:*"
+              - "ssm:*"
+              - "support:*"
+              - "trustedadvisor:*"
+              - "workspaces:*"
+              - "waf:ListWebACLs"
+
+  TesterPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy grants permissions to a User Group 'Tester'"
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "cloudwatch:*"
+              - "cloudtrail:*"
+              - "cloudformation:*"
+              - "codebuild:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "ec2:*"
+              - "ecs:*"
+              - "logs:*"
+              - "rds:*"
+              - "s3:*"
+              - "sns:*"
+              - "ssm:*"
+              - "sqs:*"
+
+  ReleaseManagerPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy grants permissions to a User Group 'Releasemanager'"
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "acm:*"
+              - "autoscaling:*"
+              - "cloudwatch:*"
+              - "cloudtrail:*"
+              - "cloudformation:*"
+              - "cloudfront:*"
+              - "codebuild:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "cognito-identity:*"
+              - "cognito-idp:*"
+              - "cognito-sync:*"
+              - "cloud9:*"
+              - "ec2:*"
+              - "ecs:*"
+              - "ecr:*"
+              - "elasticbeanstalk:*"
+              - "elasticloadbalancing:*"
+              - "lambda:*"
+              - "logs:*"
+              - "rds:*"
+              - "route53:*"
+              - "s3:*"
+              - "sns:*"
+              - "ssm:*"
+              - "sqs:*"
+
+  # Cloudwatch Policies
+  # Cloudwatch Put Metrics
+  CloudWatchPutMetricsRolePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "CloudWatch_PutMetricData"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: CloudWatchPutMetricData
+          Effect: Allow
+          Resource: "*"
+          Action:
+           - cloudwatch:*
+
+  # Cloudtrail
+  CloudTrailDeliverLogsRolePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy Document for CloudTrail to Use CloudWatch Logs for Monitoring
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AWSCloudTrailCreateLogStream20181024
+          Effect: Allow
+          Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - sns:*
+            - sqs:*
+          Resource:
+            - Fn::ImportValue:
+                !Sub ${Project}-${Subproject}-TrailTopicARN
+
+  # Lambda Execution Policy
+  LambdaExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "Lambda Policies"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: ReadWriteTable
+          Effect: Allow
+          Action:
+          - dynamodb:*
+          Resource: arn:aws:dynamodb:*:*:table/*
+        - Sid: GetStreamRecords
+          Effect: Allow
+          Action: dynamodb:GetRecords
+          Resource: arn:aws:dynamodb:*:*:table/*/stream/*
+        - Sid: s3Full
+          Effect: Allow
+          Action:
+          - s3:*
+          Resource: "*"
+        - Sid: LogStreamsFull
+          Effect: Allow
+          Action:
+          - logs:*
+          Resource: "*"
+        - Sid: ReadSSMValue
+          Effect: Allow
+          Action: # allows lambda to read from a SSM resource
+          - ssm:GetParameters
+          - ssm:GetParameter
+          Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+        - Sid: KeyHandling
+          Effect: Allow
+          Action: kms:Decrypt
+          Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:secret:*
+        - Sid: StepFunctions
+          Effect: Allow
+          Action: states:*
+          Resource: "*"
+        - Sid: CodeCommit
+          Effect: Allow
+          Action: codecommit:*
+          Resource: "*"
+
+  ApiGatewayPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy grants permissions to a User Group 'Tester'"
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Condition: {}
+            Action:
+              - "cloudwatch:*"
+              - "cloudtrail:*"
+              - "cloudformation:*"
+              - "codebuild:*"
+              - "codecommit:*"
+              - "codedeploy:*"
+              - "ec2:*"
+              - "ecs:*"
+              - "logs:*"
+              - "rds:*"
+              - "s3:*"
+              - "sns:*"
+              - "ssm:*"
+              - "sqs:*"
+
+  HomepageRepoSNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource:
+              - Fn::ImportValue: !Sub ${Project}-${Subproject}-HomepageRepoSNSTopicARN
+            Condition: {}
+            Effect: Allow
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action: "sns:Publish"
+      Topics:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-HomepageRepoSNSTopicARN
+
+  FailedHomepageDevPipelineSNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource:
+              - Fn::ImportValue: !Sub ${Project}-${Subproject}-FailedHomepageDevPipelineSNSTopicARN
+            Condition: {}
+            Effect: Allow
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action: "sns:Publish"
+      Topics:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-FailedHomepageDevPipelineSNSTopicARN
+
+  FailedHomepagePrdPipelineSNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource:
+              - Fn::ImportValue: !Sub ${Project}-${Subproject}-FailedHomepagePrdPipelineSNSTopicARN
+            Condition: {}
+            Effect: Allow
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action: "sns:Publish"
+      Topics:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-FailedHomepagePrdPipelineSNSTopicARN
+
+  SNSTopicForCodeCommitPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AWSCodeCommitSNSPolicy
+            Resource:
+              - Fn::ImportValue: !Sub ${Project}-${Subproject}-CodeCommitTopicARN
+            Condition: {}
+            Effect: Allow
+            Principal:
+              Service:
+                - "codecommit.amazonaws.com"
+            Action: "sns:Publish"
+      Topics:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-CodeCommitTopicARN
+
+  TrailTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AWSCloudTrailSNSPolicy
+          Effect: Allow
+          Resource:
+            Fn::ImportValue: !Sub ${Project}-${Subproject}-TrailTopicARN
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: 'sns:Publish'
+      Topics:
+      - Fn::ImportValue: !Sub ${Project}-${Subproject}-TrailTopicARN
+
+  BucketPublicReadPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This policy allows Access to a given s3 bucket"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Resource:
+          - !Join
+            - ""
+            - - "arn:aws:s3:::"
+              - Fn::ImportValue: !Sub ${Project}-${Subproject}-${StageDev}-BucketName
+              - "/*"
+          - !Join
+            - ""
+            - - "arn:aws:s3:::"
+              - Fn::ImportValue: !Sub ${Project}-${Subproject}-${StagePrd}-BucketName
+              - "/*"
+          Effect: Allow
+          Condition: {}
+          Action:
+          - s3:GetObject
+
+  SlackIntegrationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: "This Policy allows codepipeline and slack to be integrated and send messages to the development team"
+      Path: "/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: ChatbotConfigureChannels
+          Effect: Allow
+          Resource: "*"
+          Action:
+            - chatbot:CreateChimeWebhookConfiguration
+            - chatbot:CreateSlackChannelConfiguration
+            - chatbot:DescribeSlackChannelConfigurations
+            - chatbot:DescribeChimeWebhookConfigurations
+
+  # EventBridge Policy
+  EventBridgeExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: This policy grants permissions to an EventBridge event to run the services execution (for example, CodeBuild or Lambda)
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Resource: "*"
+            Effect: "Allow"
+            Action:
+              - codebuild:StartBuild
+              - codepipeline:StartPipelineExecution
+
+Outputs:
+  # Root Policy
+  RootPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref RootPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-RootPolicyARN
+
+  # Codebuild Policies
+  CodeBuildServiceRolePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CodeBuildServiceRolePolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CodeBuildServiceRolePolicyARN
+
+  # Cloudformation policies
+  CloudFormationPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CloudFormationPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CloudFormationPolicyARN
+
+  # Codepipeline policies
+  CodePipelinePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CodePipelinePolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CodePipelinePolicyARN
+
+  # admin policies
+  RegionAdministratorPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref RegionAdministratorPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-RegionAdministratorPolicyARN
+
+  ReleaseManagerPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref ReleaseManagerPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-ReleaseManagerPolicyARN
+
+  DeveloperPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref DeveloperPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-DeveloperPolicyARN
+
+  TesterPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref TesterPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-TesterPolicyARN
+
+  # Cloudwatch Policies
+  CloudWatchPutMetricsRolePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CloudWatchPutMetricsRolePolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CloudWatchPutMetricsRolePolicyARN
+
+  # Lambda Policies
+  LambdaExecutionPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref LambdaExecutionPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-LambdaExecutionPolicyARN
+
+  # CloudTrail Policies
+  CloudTrailDeliverLogsRolePolicy:
+    Description: ARN of the managed policy
+    Value: !Ref CloudTrailDeliverLogsRolePolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CloudTrailDeliverLogsRolePolicyARN
+
+  # ApiGateway Policies
+  ApiGatewayPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref LambdaExecutionPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-ApiGatewayPolicyARN
+
+  # Slack Integration Policy
+  SlackIntegrationPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref SlackIntegrationPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-SlackIntegrationPolicyARN
+
+  # EventBridgeExecution Policy
+  EventBridgeExecutionPolicy:
+    Description: ARN of the managed policy
+    Value: !Ref EventBridgeExecutionPolicy
+    Export:
+      Name: !Sub ${Project}-${Subproject}-EventBridgeExecutionPolicyARN

@@ -1,0 +1,208 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+ This template creates service roles for AWS resources
+ This stack that should be created by the root account user because it's created before the Administrator account is created
+ Note that you will need to specify the CAPABILITY_IAM flag when you create the stack 
+  Last Modified: 28.06.2022
+  Author: Exec <aerioeus@gmail.com>
+
+Metadata: {}
+Mappings: {}
+Conditions: {}
+
+Parameters:
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/PROJECT_NAME
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/SUBPROJECT_LANDING
+
+Resources:
+  # Service Roles
+  # Codebuilding service role
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Project}-${Subproject}-CodeBuildRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-CodeBuildServiceRolePolicyARN
+
+  # Codepipeline (Full access) service role
+  CodePipelineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub ${Project}-${Subproject}-CodePipelineRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+              - codepipeline.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-CodePipelinePolicyARN
+
+  # Serverless Roles
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-ApiGatewayPolicyARN
+
+  # LambdaExecution service role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Project}-${Subproject}-LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-LambdaExecutionPolicyARN
+        - arn:aws:iam::aws:policy/AWSIoTConfigReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSIoTFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+        - arn:aws:iam::aws:policy/service-role/AmazonS3ObjectLambdaExecutionRolePolicy
+
+  # Slack integration role
+  SlackIntegrationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Project}-${Subproject}-SlackIntegrationRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: chatbot.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-SlackIntegrationPolicyARN
+
+  # This role allows the EventBridge service to run the codebuild execution
+  EventBridgeExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+      ManagedPolicyArns:
+        - Fn::ImportValue: !Sub ${Project}-${Subproject}-EventBridgeExecutionPolicyARN
+
+Outputs:
+  CodeBuildRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt CodeBuildRole.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CodeBuildRoleARN
+
+  CodePipelineRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt CodePipelineRole.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CodePipelineRoleARN
+
+  ApiGatewayRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt ApiGatewayRole.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-ApiGatewayRoleARN
+
+  LambdaExecutionRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-LambdaExecutionRoleARN
+
+  SlackIntegrationRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt SlackIntegrationRole.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-SlackIntegrationRoleARN
+
+  EventBridgeExecutionRoleARN:
+    Description: The ARN of the Role
+    Value: !GetAtt EventBridgeExecutionRole.Arn
+    Export:
+      Name: !Sub ${Project}-${Subproject}-EventBridgeExecutionRoleARN
+
+  CodeBuildRoleName:
+    Description: The Name of the Role
+    Value: !Ref CodeBuildRole
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CodeBuildRoleName
+
+  CodePipelineRoleName:
+    Description: The Name of the Role
+    Value: !Ref CodePipelineRole
+    Export:
+      Name: !Sub ${Project}-${Subproject}-CodePipelineRoleName
+
+  ApiGatewayRoleName:
+    Description: The Name of the Role
+    Value: !Ref ApiGatewayRole
+    Export:
+      Name: !Sub ${Project}-${Subproject}-ApiGatewayRoleName
+
+  LambdaExecutionRoleName:
+    Description: The Name of the Role
+    Value: !Ref LambdaExecutionRole
+    Export:
+      Name: !Sub ${Project}-${Subproject}-LambdaExecutionRoleName
+
+  SlackIntegrationRoleName:
+    Description: The Name of the Role
+    Value: !Ref SlackIntegrationRole
+    Export:
+      Name: !Sub ${Project}-${Subproject}-SlackIntegrationRoleName
+
+  EventBridgeExecutionRoleName:
+    Description: The Name of the Role
+    Value: !Ref EventBridgeExecutionRole
+    Export:
+      Name: !Sub ${Project}-${Subproject}-EventBridgeExecutionRoleName

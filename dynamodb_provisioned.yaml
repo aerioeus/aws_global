@@ -1,0 +1,180 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This template creates an Aggregations table
+  Last Modified: 02.08.2021
+  Author: Exec <aerioeus@gmail.com>
+Parameters:
+  Owner:
+    Description: Individual Name Responsible for the Stack
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/LEAD-DEVELOPER_NAME
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_WEATHER
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+  TableName:
+    Type: String
+    Default: Weather
+    Description: Name of the table
+
+  StringElementType:
+    Description: String Attribute Type
+    Type: String
+    Default: "S"
+
+  HashKeyElementName:
+    Description: HashType PrimaryKey Name
+    Type: String
+    Default: pk_id
+
+  SortKeyName:
+    Description: Optional name of the sort key; Timestamp
+    Type: String
+    Default: sk
+
+  Gsi1HashKeyName:
+    Description: Global secondary index-1 hash key; Latitude
+    Type: String
+    Default: gsi_1_pk
+
+  Gsi1SortKeyName:
+    Description: Global secondary index-1 sort key; Longitude
+    Type: String
+    Default: gsi_1_sk
+
+  Gsi2HashKeyName:
+    Description: Global secondary index-2 hash key; temperature
+    Type: String
+    Default: gsi_2_pk
+
+  Gsi2SortKeyName:
+    Description: Global secondary index-2 sort key; Feels like
+    Type: String
+    Default: gsi_2_sk
+
+  BillingAndScalingMode:
+    Description: 'Specify how you are charged for read and write throughput and how you manage capacity.'
+    Type: String
+    Default: PROVISIONED
+    AllowedValues: [PROVISIONED, PAY_PER_REQUEST]
+
+  ReadCapacityUnits1:
+    Description: Provisioned read throughput for provisioned mode tables to put a cap on how much you will spend
+    Type: Number
+    Default: '5'
+    MinValue: '5'
+    MaxValue: '10000'
+    ConstraintDescription: must be between 5 and 10000
+
+  WriteCapacityUnits1:
+    Description: Provisioned write throughput for provisioned mode tables to put a cap on how much you will spend
+    Type: Number
+    Default: '10'
+    MinValue: '5'
+    MaxValue: '10000'
+    ConstraintDescription: must be between 5 and 10000
+
+  ReadCapacityUnits2:
+    Description: Provisioned read throughput settings for the index to put a cap on how much you will spend
+    Type: Number
+    Default: '5'
+    MinValue: '5'
+    MaxValue: '10000'
+    ConstraintDescription: must be between 5 and 10000
+
+  WriteCapacityUnits2:
+    Description: Provisioned write throughput settings for the index to put a cap on how much you will spend
+    Type: Number
+    Default: '10'
+    MinValue: '5'
+    MaxValue: '10000'
+    ConstraintDescription: must be between 5 and 10000
+
+Resources:
+  WeatherTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${EnvironmentName}_${TableName}
+      AttributeDefinitions:
+        - AttributeName: !Ref HashKeyElementName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref SortKeyName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref Gsi1HashKeyName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref Gsi1SortKeyName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref Gsi2HashKeyName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref Gsi2SortKeyName
+          AttributeType: !Ref StringElementType
+      # Specifies the attributes that make up the primary key for the table
+      BillingMode: !Ref BillingAndScalingMode
+      KeySchema:
+        - AttributeName: !Ref HashKeyElementName
+          KeyType: HASH
+        - AttributeName: !Ref SortKeyName
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: !Ref ReadCapacityUnits1
+        WriteCapacityUnits: !Ref WriteCapacityUnits1
+      GlobalSecondaryIndexes:
+        - IndexName: Gsi1Index
+          KeySchema:
+            - AttributeName: !Ref Gsi1HashKeyName
+              KeyType: HASH
+            - AttributeName: !Ref Gsi1SortKeyName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: !Ref ReadCapacityUnits2
+            WriteCapacityUnits: !Ref WriteCapacityUnits2
+        - IndexName: Gsi2Index
+          KeySchema:
+            - AttributeName: !Ref Gsi2HashKeyName
+              KeyType: HASH
+            - AttributeName: !Ref Gsi2SortKeyName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: !Ref ReadCapacityUnits2
+            WriteCapacityUnits: !Ref WriteCapacityUnits2
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: True
+      SSESpecification:
+        SSEEnabled: True
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+      Tags:
+      - Key: Name
+        Value: !Ref TableName
+      - Key: Name
+        Value: !Ref Project
+      - Key: backup
+        Value: thinbackup
+Outputs:
+  TableName:
+    Description: Table name of the DynamoDB table
+    Value: !Ref WeatherTable
+    Export:
+      Name: !Sub ${EnvironmentName}-${TableName}Table
+
+  TableArn:
+    Description: Amazon Resource Name (ARN) of the DynamoDB table
+    Value: !GetAtt WeatherTable.Arn
+    Export:
+      Name: !Sub ${EnvironmentName}-${TableName}TableARN

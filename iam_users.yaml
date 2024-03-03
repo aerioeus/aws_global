@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This template will create IAM users
+  This stack also creates an AWSAccessKeyId/AWSSecretKey pair associated with the user
+  Note that you will need to specify the CAPABILITY_IAM flag when you create the stack 
+   Last Modified: 28.06.2022
+   Author: Exec <aerioeus@gmail.com>
+
+Metadata: {}
+Mappings: {}
+Conditions: {}
+
+Parameters:
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/PROJECT_NAME
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/SUBPROJECT_LANDING
+
+  TempPwd2:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/TEMP_PWD_2
+    NoEcho: true
+
+  TempPwd3:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/TEMP_PWD_3
+    NoEcho: true
+
+  TempPwd4:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /homepage/TEMP_PWD_4
+    NoEcho: true
+Resources:
+# declaring IAM User Resources
+  ReleaseManager:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: ReleaseManager
+      Path: "/"
+      LoginProfile:
+        Password: !Ref TempPwd2
+
+  Developer:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Developer
+      Path: "/"
+      LoginProfile:
+        Password: !Ref TempPwd3
+
+  Russell:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Russell
+      Path: "/"
+      LoginProfile:
+        Password: !Ref TempPwd3
+
+  Tester:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Tester
+      Path: "/"
+      LoginProfile:
+        Password: !Ref TempPwd4
+
+  # declaring IAM Access Key Resources
+  ReleaseManagerAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref "ReleaseManager"
+
+  DeveloperAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref "Developer"
+
+  RussellAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref Russell
+
+  TesterAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref "Tester"
+
+  # adds users to a group
+  ReleaseManagerAddToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName:
+        Fn::ImportValue: !Sub ${Project}-${Subproject}-ReleaseManagerGroupName
+      Users:
+        - !Ref ReleaseManager
+
+  DeveloperAddToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName:
+        Fn::ImportValue: !Sub ${Project}-${Subproject}-DeveloperGroupName
+      Users:
+        - !Ref Developer
+
+  TesterAddToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName:
+        Fn::ImportValue: !Sub ${Project}-${Subproject}-TesterGroupName
+      Users:
+        - !Ref Tester
+
+  RussellAddToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName:
+        Fn::ImportValue: !Sub ${Project}-${Subproject}-DeveloperGroupName
+      Users:
+        - !Ref Russell
+
+Outputs:
+  ReleaseManagerAccessKey:
+    Value: !Ref ReleaseManagerAccessKey
+    Description: AWSAccessKeyId of new user Release Manager
+    Export:
+      Name: !Sub ${Project}-${Subproject}-ReleaseManagerAccessKey
+
+  ReleaseManagerSecretKey:
+    Value: !GetAtt ReleaseManagerAccessKey.SecretAccessKey
+    Description: AWSSecretKey of new user Release Manager
+    Export:
+      Name: !Sub ${Project}-${Subproject}-ReleaseManagerSecretKey
+
+  DeveloperAccessKey:
+    Value: !Ref DeveloperAccessKey
+    Description: AWSAccessKeyId of new user Developer
+    Export:
+        Name: !Sub ${Project}-${Subproject}-DeveloperAccessKey
+
+  DeveloperSecretKey:
+    Value: !GetAtt DeveloperAccessKey.SecretAccessKey
+    Description: AWSSecretKey of new user Developer
+    Export:
+      Name: !Sub ${Project}-${Subproject}-DeveloperSecretKey
+
+  TesterAccessKey:
+    Value: !Ref TesterAccessKey
+    Description: AWSAccessKeyId of new user Tester
+    Export:
+        Name: !Sub ${Project}-${Subproject}-TesterAccessKey
+
+  TesterSecretKey:
+    Value: !GetAtt TesterAccessKey.SecretAccessKey
+    Description: AWSSecretKey of new user Tester
+    Export:
+      Name: !Sub ${Project}-${Subproject}-TesterSecretKey
+
+  RussellAccessKey:
+    Value: !Ref RussellAccessKey
+    Description: AWSAccessKeyId of new user Russell
+    Export:
+        Name: !Sub ${Project}-${Subproject}-RussellAccessKey
+
+  RussellSecretKey:
+    Value: !GetAtt RussellAccessKey.SecretAccessKey
+    Description: AWSSecretKey of new user Russell
+    Export:
+      Name: !Sub ${Project}-${Subproject}-RussellSecretKey

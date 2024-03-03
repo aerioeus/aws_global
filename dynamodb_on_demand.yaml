@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This template creates an Aggregations table
+  Last Modified: 02.08.2021
+  Author: Exec <aerioeus@gmail.com>
+Parameters:
+  Owner:
+    Description: Individual Name Responsible for the Stack
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/LEAD-DEVELOPER_NAME
+
+  Project:
+    Description: The project name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_ASA
+
+  Subproject:
+    Description: Enter Project Name
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/PROJECT_WEATHER
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type : 'AWS::SSM::Parameter::Value<String>'
+    Default: /energicos/ENVIRONMENT_NAME
+
+  TableName:
+    Type: String
+    Default: Weather
+    Description: Name of the table
+
+  StringElementType:
+    Description: String Attribute Type
+    Type: String
+    Default: "S"
+
+  HashKeyElementName:
+    Description: HashType PrimaryKey Name
+    Type: String
+    Default: PK
+
+  SortKeyName:
+    Description: Optional name of the sort key; Timestamp
+    Type: String
+    Default: SK
+
+  IndexName1:
+    Description: Global secondary index-1 hash key; Latitude
+    Type: String
+    Default: GSI1
+
+  IndexName2:
+    Description: Global secondary index-1 hash key; Latitude
+    Type: String
+    Default: GSI2
+
+  Gsi1HashKeyName:
+    Description: Global secondary index-1 hash key; Latitude
+    Type: String
+    Default: GSI1_PK
+
+  Gsi1SortKeyName:
+    Description: Global secondary index-1 sort key; Longitude
+    Type: String
+    Default: GSI1_SK
+
+  Gsi2HashKeyName:
+    Description: Global secondary index-2 hash key; temperature
+    Type: String
+    Default: GSI2_PK
+
+  Gsi2SortKeyName:
+    Description: Global secondary index-2 sort key; Feels like
+    Type: String
+    Default: GSI2_SK
+
+  BillingAndScalingMode:
+    Description: 'Specify how you are charged for read and write throughput and how you manage capacity.'
+    Type: String
+    Default: PAY_PER_REQUEST
+    AllowedValues: [PROVISIONED, PAY_PER_REQUEST]
+
+Resources:
+  WeatherTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${EnvironmentName}_${TableName}
+      AttributeDefinitions:
+        - AttributeName: !Ref HashKeyElementName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref SortKeyName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref Gsi1HashKeyName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref Gsi1SortKeyName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref Gsi2HashKeyName
+          AttributeType: !Ref StringElementType
+        - AttributeName: !Ref Gsi2SortKeyName
+          AttributeType: !Ref StringElementType
+      BillingMode: !Ref BillingAndScalingMode
+      KeySchema:
+        - AttributeName: !Ref HashKeyElementName
+          KeyType: HASH
+        - AttributeName: !Ref SortKeyName
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: !Ref IndexName1
+          KeySchema:
+            - AttributeName: !Ref Gsi1HashKeyName
+              KeyType: HASH
+            - AttributeName: !Ref Gsi1SortKeyName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: True
+      SSESpecification:
+        SSEEnabled: True
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+      Tags:
+      - Key: Name
+        Value: !Ref TableName
+      - Key: Name
+        Value: !Ref Project
+      - Key: backup
+        Value: thinbackup
+Outputs:
+  TableName:
+    Description: Table name of the DynamoDB table
+    Value: !Ref WeatherTable
+    Export:
+      Name: !Sub ${EnvironmentName}-${TableName}Table
+
+  TableArn:
+    Description: Amazon Resource Name (ARN) of the DynamoDB table
+    Value: !GetAtt WeatherTable.Arn
+    Export:
+      Name: !Sub ${EnvironmentName}-${TableName}TableARN
